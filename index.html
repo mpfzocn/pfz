@@ -220,6 +220,18 @@
     .legend-item { display: flex; align-items: center; gap: 8px; font-weight: 600; }
     .legend-color { width: 12px; height: 12px; border-radius: 50%; }
     .legend-line { width: 16px; height: 3px; }
+
+    /* Custom Vessel Marker Styling */
+    .vessel-icon {
+      background: #0284c7;
+      border: 2px solid white;
+      border-radius: 50%;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px rgba(2, 132, 199, 0.6);
+    }
   </style>
 </head>
 <body>
@@ -259,6 +271,13 @@
 
       <div class="status-msg" id="status">
         <i class="fa-solid fa-circle-info"></i> Ready
+      </div>
+
+      <!-- Live GPS Location Tracker -->
+      <div class="control-group">
+        <button class="btn-action" id="gps-btn" onclick="toggleGPS()">
+          <i class="fa-solid fa-location-arrow" style="color: #0284c7;"></i> Track Vessel Location
+        </button>
       </div>
 
       <!-- Stats Grid -->
@@ -361,6 +380,11 @@
     let modLayerGroup = L.layerGroup().addTo(map);
     let eezLayer = null;
 
+    // Vessel GPS Tracking Variables
+    let watchId = null;
+    let vesselMarker = null;
+    let vesselAccuracyCircle = null;
+
     // Live Coordinates Display Control
     const CoordsControl = L.Control.extend({
       options: { position: 'bottomright' },
@@ -386,11 +410,78 @@
           <div class="legend-item"><div class="legend-color" style="background:#ef4444"></div> Strong PFZ</div>
           <div class="legend-item"><div class="legend-color" style="background:#eab308"></div> Moderate PFZ</div>
           <div class="legend-item"><div class="legend-line" style="border-top:2px dashed #38bdf8"></div> EEZ Boundary</div>
+          <div class="legend-item"><i class="fa-solid fa-ship" style="color:#0284c7"></i> Your Vessel</div>
         `;
         return container;
       }
     });
     map.addControl(new LegendControl());
+
+    // Toggle Real-time GPS Tracking Function
+    function toggleGPS() {
+      const btn = document.getElementById('gps-btn');
+
+      if (watchId !== null) {
+        // Stop Tracking
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        if (vesselMarker) map.removeLayer(vesselMarker);
+        if (vesselAccuracyCircle) map.removeLayer(vesselAccuracyCircle);
+        vesselMarker = null;
+        vesselAccuracyCircle = null;
+
+        btn.classList.remove('active');
+        btn.innerHTML = `<i class="fa-solid fa-location-arrow" style="color: #0284c7;"></i> Track Vessel Location`;
+      } else {
+        // Start Live Geolocation Tracking
+        if (!('geolocation' in navigator)) {
+          alert('Geolocation is not supported by your browser or device.');
+          return;
+        }
+
+        btn.classList.add('active');
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Locating Vessel...`;
+
+        watchId = navigator.geolocation.watchPosition(
+          position => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            const shipIcon = L.divIcon({
+              className: 'vessel-icon',
+              html: '<i class="fa-solid fa-ship"></i>',
+              iconSize: [26, 26],
+              iconAnchor: [13, 13]
+            });
+
+            if (!vesselMarker) {
+              vesselMarker = L.marker([lat, lng], { icon: shipIcon }).addTo(map);
+              vesselAccuracyCircle = L.circle([lat, lng], {
+                radius: accuracy,
+                color: '#0284c7',
+                fillColor: '#38bdf8',
+                fillOpacity: 0.15,
+                weight: 1
+              }).addTo(map);
+              map.setView([lat, lng], 10);
+            } else {
+              vesselMarker.setLatLng([lat, lng]);
+              vesselAccuracyCircle.setLatLng([lat, lng]);
+              vesselAccuracyCircle.setRadius(accuracy);
+            }
+
+            vesselMarker.bindPopup(`<b>Your Vessel Position</b><br>Lat: ${lat.toFixed(4)}°, Lng: ${lng.toFixed(4)}°<br>Accuracy: ±${accuracy.toFixed(0)} m`).openPopup();
+            btn.innerHTML = `<i class="fa-solid fa-crosshairs"></i> Tracking Active (Stop)`;
+          },
+          err => {
+            alert('Unable to retrieve location. Please grant GPS permission.');
+            toggleGPS();
+          },
+          { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+        );
+      }
+    }
 
     // Auto-fetch EEZ boundary from repository root directory
     fetch('EEZ.json')
