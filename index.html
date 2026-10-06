@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bay of Bengal Oceanographic & PFZ Forecast System</title>
+  <title>Bay of Bengal PFZ Forecast System</title>
   
   <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
-  <!-- FontAwesome & Google Fonts -->
+  <!-- FontAwesome & Fonts -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- PapaParse for local file parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 
   <style>
     :root {
@@ -28,7 +31,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
     body { background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Header */
     header {
       background: var(--card-bg);
       padding: 0.75rem 1.5rem;
@@ -36,105 +38,57 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border-color);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       z-index: 1000;
     }
     .brand { display: flex; align-items: center; gap: 12px; }
     .brand-icon { width: 38px; height: 38px; background: rgba(56, 189, 248, 0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.2rem; }
-    .brand-title h1 { font-size: 1.15rem; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
+    .brand-title h1 { font-size: 1.15rem; font-weight: 700; color: #fff; }
     .brand-title p { font-size: 0.75rem; color: var(--text-muted); }
-    .header-badge { background: #1e293b; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color); color: var(--primary); display: flex; align-items: center; gap: 6px; }
+    .header-badge { background: #1e293b; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color); color: var(--primary); }
 
-    /* Layout */
     .app-container { display: flex; flex: 1; overflow: hidden; }
     
-    /* Sidebar */
     .sidebar {
       width: 380px;
       background: var(--card-bg);
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      gap: 1rem;
-      padding: 1.2rem;
+      gap: 0.9rem;
+      padding: 1.1rem;
       overflow-y: auto;
       z-index: 500;
     }
 
-    /* Stat Grid */
     .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .stat-card {
-      background: rgba(11, 15, 25, 0.6);
-      border: 1px solid var(--border-color);
-      padding: 10px;
-      border-radius: 10px;
-      text-align: center;
-    }
-    .stat-card .val { font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
-    .stat-card .lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card { background: rgba(11, 15, 25, 0.6); border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; text-align: center; }
+    .stat-card .val { font-size: 1.2rem; font-weight: 700; }
+    .stat-card .lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
 
-    /* Control Panel */
-    .control-group { display: flex; flex-direction: column; gap: 8px; }
+    .control-group { display: flex; flex-direction: column; gap: 6px; }
     label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between; }
-    select, input {
-      width: 100%;
-      padding: 0.65rem 0.8rem;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      background: #0f172a;
-      color: #fff;
-      font-size: 0.85rem;
-      outline: none;
-      transition: all 0.2s ease;
-    }
-    select:focus, input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+    select, input { width: 100%; padding: 0.65rem 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: #0f172a; color: #fff; font-size: 0.85rem; outline: none; }
 
-    .btn {
-      background: var(--primary);
-      color: #000;
-      border: none;
-      padding: 0.7rem;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: opacity 0.2s;
-    }
-    .btn:hover { opacity: 0.9; }
+    .btn { background: var(--primary); color: #000; border: none; padding: 0.7rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-    /* Legend Box */
-    .legend-box {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid var(--border-color);
-      padding: 10px 14px;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-around;
-    }
+    .legend-box { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-around; }
     .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
-    /* Table Styling */
-    .table-wrapper { flex: 1; min-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #0f172a; }
+    .table-wrapper { flex: 1; min-height: 200px; max-height: 260px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #0f172a; }
     table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-    th { position: sticky; top: 0; background: #1e293b; color: var(--primary); padding: 8px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border-color); }
+    th { position: sticky; top: 0; background: #1e293b; color: var(--primary); padding: 8px; text-align: left; }
     td { padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    tr:hover { background: rgba(56, 189, 248, 0.05); cursor: pointer; }
+    tr:hover { background: rgba(56, 189, 248, 0.1); cursor: pointer; }
 
-    /* Map */
     .map-container { flex: 1; position: relative; }
     #map { width: 100%; height: 100%; background: #0b0f19; }
 
-    /* Custom Popup */
-    .leaflet-popup-content-wrapper { background: var(--card-bg); color: #fff; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .leaflet-popup-content-wrapper { background: var(--card-bg); color: #fff; border: 1px solid var(--border-color); border-radius: 12px; }
     .leaflet-popup-tip { background: var(--card-bg); }
     .popup-card { padding: 4px; }
     .popup-card h4 { font-size: 0.95rem; margin-bottom: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; }
-    .popup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.78rem; margin-top: 6px; }
+    .popup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.78rem; }
     .popup-grid div span { color: var(--text-muted); display: block; font-size: 0.7rem; }
   </style>
 </head>
@@ -154,10 +108,8 @@
   </header>
 
   <div class="app-container">
-    <!-- Sidebar -->
     <div class="sidebar">
       
-      <!-- Stats -->
       <div class="stat-grid">
         <div class="stat-card">
           <div class="lbl">Total Cells</div>
@@ -173,7 +125,6 @@
         </div>
       </div>
 
-      <!-- Controls -->
       <div class="control-group">
         <label>PFZ Intensity Filter</label>
         <select id="pfz-filter" onchange="applyFilters()">
@@ -185,11 +136,11 @@
 
       <div class="legend-box">
         <div class="legend-item">
-          <span class="dot" style="background: var(--strong-pfz); color: var(--strong-pfz);"></span>
+          <span class="dot" style="background: var(--strong-pfz);"></span>
           Strong PFZ
         </div>
         <div class="legend-item">
-          <span class="dot" style="background: var(--mod-pfz); color: var(--mod-pfz);"></span>
+          <span class="dot" style="background: var(--mod-pfz);"></span>
           Moderate PFZ
         </div>
       </div>
@@ -205,10 +156,9 @@
 
       <div class="control-group">
         <label>Search Latitude / Longitude</label>
-        <input type="text" id="search-input" placeholder="e.g. 19.75" onkeyup="searchPoints()">
+        <input type="text" id="search-input" placeholder="e.g. 19.75" onkeyup="applyFilters()">
       </div>
 
-      <!-- Table -->
       <div class="control-group" style="flex:1; display:flex; flex-direction:column;">
         <label>
           Coordinate Points 
@@ -235,21 +185,14 @@
 
     </div>
 
-    <!-- Map View -->
     <div class="map-container">
       <div id="map"></div>
     </div>
   </div>
 
   <script>
-    // Initialize Map with Canvas renderer for ultimate performance
-    const map = L.map('map', {
-      center: [19.80, 90.35],
-      zoom: 7,
-      preferCanvas: true
-    });
+    const map = L.map('map', { center: [19.80, 90.35], zoom: 7, preferCanvas: true });
 
-    // Tile Layers
     const layers = {
       dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }),
       satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
@@ -263,37 +206,26 @@
     let filteredData = [];
     let circleMarkers = [];
 
-    // Load CSV File
-    fetch('pfz_all_cells_2026-10-05.csv')
-      .then(res => res.text())
-      .then(csvText => {
-        parseCSV(csvText);
-        applyFilters();
-      })
-      .catch(err => console.error("CSV loading error:", err));
+    // Relative CSV fetch using PapaParse
+    Papa.parse('pfz_all_cells_2026-10-05.csv', {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        rawData = results.data.map(row => ({
+          date: row.date || row.Date,
+          lat: parseFloat(row.latitude || row.Latitude),
+          lng: parseFloat(row.longitude || row.Longitude),
+          sst: parseFloat(row.sst_C || row.SST_C),
+          front: parseFloat(row.front_C_per_km || row.Front_C_per_km),
+          speed: parseFloat(row.current_speed_ms || row.Current_Speed_ms),
+          pClass: parseInt(row.pfz_class || row.PFZ_Class),
+          label: (row.pfz_label || row.PFZ_Label || '').trim()
+        })).filter(d => d.pClass === 1 || d.pClass === 2);
 
-    function parseCSV(text) {
-      const lines = text.trim().split('\n');
-      for(let i = 1; i < lines.length; i++) {
-        if(!lines[i]) continue;
-        const col = lines[i].split(',');
-        const pClass = parseInt(col[8]);
-        
-        // Filter out non-PFZ cells
-        if(pClass === 1 || pClass === 2) {
-          rawData.push({
-            date: col[0],
-            lat: parseFloat(col[1]),
-            lng: parseFloat(col[2]),
-            sst: parseFloat(col[3]),
-            front: parseFloat(col[4]),
-            speed: parseFloat(col[7]),
-            pClass: pClass,
-            label: col[9].trim()
-          });
-        }
+        applyFilters();
       }
-    }
+    });
 
     function applyFilters() {
       const pClassFilter = document.getElementById('pfz-filter').value;
@@ -322,7 +254,6 @@
     }
 
     function renderMarkers() {
-      // Clear existing markers
       circleMarkers.forEach(m => map.removeLayer(m));
       circleMarkers = [];
 
@@ -341,13 +272,12 @@
 
         marker.bindPopup(`
           <div class="popup-card">
-            <h4 style="color:${color};">${p.label}</h4>
+            <h4 style="color:${color};">${p.label || (isStrong ? 'Strong PFZ' : 'Moderate PFZ')}</h4>
             <div class="popup-grid">
               <div><span>Latitude</span><b>${p.lat.toFixed(4)}°N</b></div>
               <div><span>Longitude</span><b>${p.lng.toFixed(4)}°E</b></div>
               <div><span>SST</span><b>${p.sst.toFixed(2)} °C</b></div>
-              <div><span>Current Speed</span><b>${p.speed.toFixed(2)} m/s</b></div>
-              <div><span>Front Gradient</span><b>${p.front.toFixed(4)} °C/km</b></div>
+              <div><span>Speed</span><b>${p.speed.toFixed(2)} m/s</b></div>
             </div>
           </div>
         `);
@@ -362,8 +292,7 @@
       tbody.innerHTML = '';
       document.getElementById('table-count').innerText = `Showing ${filteredData.length}`;
 
-      // Render top 150 entries for table performance
-      filteredData.slice(0, 150).forEach(p => {
+      filteredData.slice(0, 100).forEach(p => {
         const isStrong = p.pClass === 2;
         const color = isStrong ? 'var(--strong-pfz)' : 'var(--mod-pfz)';
 
@@ -375,38 +304,10 @@
           <td>${p.sst.toFixed(1)}</td>
         `;
         
-        tr.onclick = () => {
-          map.setView([p.lat, p.lng], 9);
-        };
-
+        tr.onclick = () => map.setView([p.lat, p.lng], 9);
         tbody.appendChild(tr);
       });
     }
 
     function changeMapStyle() {
       const style = document.getElementById('map-style').value;
-      map.removeLayer(currentLayer);
-      currentLayer = layers[style];
-      currentLayer.addTo(map);
-    }
-
-    function searchPoints() {
-      applyFilters();
-    }
-
-    function downloadCSV() {
-      let csv = 'Date,Latitude,Longitude,SST_C,Front_C_per_km,Current_Speed_ms,PFZ_Label\n';
-      filteredData.forEach(d => {
-        csv += `${d.date},${d.lat},${d.lng},${d.sst},${d.front},${d.speed},"${d.label}"\n`;
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.setAttribute('href', url);
-      a.setAttribute('download', `PFZ_Forecast_${document.getElementById('pfz-filter').value}.csv`);
-      a.click();
-    }
-  </script>
-</body>
-</html>
