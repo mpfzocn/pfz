@@ -1,9 +1,214 @@
-Papa.parse('pfz_all_cells_2026-10-05.csv', {
-  download: true,
-  header: true,
-  skipEmptyLines: true,
-  complete: function(results) {
-    // এখানে কোনো ভারী কোড ছাড়াই ব্রাউজার ব্যাকগ্রাউন্ডে খুব দ্রুত ডাটা লোড করে নেবে
-    processParsedData(results.data);
-  }
-});
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bay of Bengal PFZ Forecast System</title>
+  
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- FontAwesome & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- PapaParse for CSV & shpjs for ZIP Shapefiles -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --card-bg: #151c2c;
+      --border-color: #232e42;
+      --primary: #38bdf8;
+      --strong-pfz: #facc15;
+      --mod-pfz: #22c55e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    header {
+      background: var(--card-bg);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      z-index: 1000;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon { width: 38px; height: 38px; background: rgba(56, 189, 248, 0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.2rem; }
+    .brand-title h1 { font-size: 1.15rem; font-weight: 700; color: #fff; }
+    .brand-title p { font-size: 0.75rem; color: var(--text-muted); }
+    .header-badge { background: #1e293b; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color); color: var(--primary); }
+
+    .app-container { display: flex; flex: 1; overflow: hidden; }
+    
+    .sidebar {
+      width: 360px;
+      background: var(--card-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      padding: 1.1rem;
+      overflow-y: auto;
+      z-index: 500;
+    }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-card { background: rgba(11, 15, 25, 0.6); border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; text-align: center; }
+    .stat-card .val { font-size: 1.2rem; font-weight: 700; }
+    .stat-card .lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
+
+    .control-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+    select, input { width: 100%; padding: 0.65rem 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: #0f172a; color: #fff; font-size: 0.85rem; outline: none; }
+
+    .legend-box { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-around; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+    .map-container { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; background: #0b0f19; }
+
+    .status-msg { font-size: 0.75rem; padding: 6px 10px; border-radius: 6px; background: rgba(56, 189, 248, 0.1); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.2); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-water"></i></div>
+      <div class="brand-title">
+        <h1>Bay of Bengal PFZ Forecast</h1>
+        <p>Oceanographic Modeling & Potential Fishing Zone System</p>
+      </div>
+    </div>
+    <div class="header-badge">
+      <i class="fa-regular fa-calendar"></i> <span>04-05 Oct 2026</span>
+    </div>
+  </header>
+
+  <div class="app-container">
+    <div class="sidebar">
+      
+      <div class="status-msg" id="status">
+        <i class="fa-solid fa-spinner fa-spin"></i> Loading Data from GitHub...
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="lbl">Total Cells</div>
+          <div class="val" id="stat-total" style="color: var(--primary);">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="lbl">Strong PFZ</div>
+          <div class="val" id="stat-strong" style="color: var(--strong-pfz);">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="lbl">Moderate</div>
+          <div class="val" id="stat-mod" style="color: var(--mod-pfz);">0</div>
+        </div>
+      </div>
+
+      <div class="legend-box">
+        <div class="legend-item">
+          <span class="dot" style="background: var(--strong-pfz);"></span>
+          Strong PFZ
+        </div>
+        <div class="legend-item">
+          <span class="dot" style="background: var(--mod-pfz);"></span>
+          Moderate PFZ
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Map View Mode</label>
+        <select id="map-style" onchange="changeMapStyle()">
+          <option value="dark">Ocean Dark Mode</option>
+          <option value="satellite">Satellite Imagery</option>
+          <option value="street">Standard Navigation</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <script>
+    const map = L.map('map', { center: [19.80, 90.35], zoom: 7 });
+
+    const layers = {
+      dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }),
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
+      street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 })
+    };
+    layers.dark.addTo(map);
+    let currentLayer = layers.dark;
+
+    // 1. Auto Load CSV Grid Data
+    Papa.parse('pfz_all_cells_2026-10-05.csv', {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        let strong = 0, mod = 0;
+        results.data.forEach(p => {
+          const lat = parseFloat(p.latitude || p.Latitude);
+          const lng = parseFloat(p.longitude || p.Longitude);
+          const cls = parseInt(p.pfz_class || p.PFZ_Class);
+          
+          if (!isNaN(lat) && !isNaN(lng) && (cls === 1 || cls === 2)) {
+            const isStrong = cls === 2;
+            if (isStrong) strong++; else mod++;
+
+            L.circleMarker([lat, lng], {
+              radius: isStrong ? 4 : 3,
+              fillColor: isStrong ? '#facc15' : '#22c55e',
+              color: isStrong ? '#facc15' : '#22c55e',
+              weight: 0.5,
+              fillOpacity: 0.7
+            }).addTo(map);
+          }
+        });
+
+        document.getElementById('stat-total').innerText = (strong + mod).toLocaleString();
+        document.getElementById('stat-strong').innerText = strong.toLocaleString();
+        document.getElementById('stat-mod').innerText = mod.toLocaleString();
+        document.getElementById('status').innerText = '✅ Data Loaded Successfully';
+      }
+    });
+
+    // 2. Auto Load Shapefiles (ZIPs)
+    function loadPolygonZip(url, color, label) {
+      shp(url).then(function(geojson) {
+        L.geoJSON(geojson, {
+          style: { color: color, fillColor: color, fillOpacity: 0.4, weight: 2 },
+          onEachFeature: function (f, l) {
+            l.bindPopup(`<b>${label} Polygon</b><br>Forecast Date: 04 Oct 2026`);
+          }
+        }).addTo(map);
+      }).catch(err => console.log('Loading ' + label + '...'));
+    }
+
+    loadPolygonZip('Strong.zip', '#facc15', 'Strong PFZ');
+    loadPolygonZip('Moderate.zip', '#22c55e', 'Moderate PFZ');
+
+    function changeMapStyle() {
+      const style = document.getElementById('map-style').value;
+      map.removeLayer(currentLayer);
+      currentLayer = layers[style];
+      currentLayer.addTo(map);
+    }
+  </script>
+</body>
+</html>
