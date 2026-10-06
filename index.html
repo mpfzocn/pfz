@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bay of Bengal PFZ Multi-Date Forecast System</title>
+  <!-- Tab Title -->
+  <title>Bay of Bengal PFZ Forecast | SODIC-CU</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -27,6 +28,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
     body { background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
+    /* Header Styling */
     header {
       background: var(--card-bg);
       padding: 0.75rem 1.5rem;
@@ -38,12 +40,28 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-icon { width: 38px; height: 38px; background: rgba(2, 132, 199, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.2rem; }
-    .brand-title h1 { font-size: 1.15rem; font-weight: 700; color: #0f172a; }
-    .brand-title p { font-size: 0.75rem; color: var(--text-muted); }
+    .brand-icon { width: 42px; height: 42px; background: rgba(2, 132, 199, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.3rem; }
+    
+    .brand-info .inst-line { font-size: 0.72rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .brand-info h1 { font-size: 1.15rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
+    .brand-info p { font-size: 0.75rem; color: var(--text-muted); }
+    
+    .tagline-badge { 
+      background: #f8fafc; 
+      border: 1px solid var(--border-color); 
+      padding: 6px 12px; 
+      border-radius: 20px; 
+      font-size: 0.75rem; 
+      font-weight: 600; 
+      color: #334155; 
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
     .app-container { display: flex; flex: 1; overflow: hidden; }
     
+    /* Sidebar Layout */
     .sidebar {
       width: 360px;
       background: var(--card-bg);
@@ -121,12 +139,41 @@
     .stat-card .val { font-size: 1.2rem; font-weight: 700; }
     .stat-card .lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
 
+    /* Info Cards in Sidebar */
+    .info-card {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      color: #334155;
+      line-height: 1.4;
+    }
+    .info-card h4 { font-size: 0.8rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    
+    .disclaimer-card {
+      background: #fffbebf8;
+      border: 1px solid #fef08a;
+      color: #713f12;
+    }
+    .disclaimer-card h4 { color: #854d0e; }
+
+    /* Footer */
+    footer {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-align: center;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-color);
+      font-weight: 500;
+    }
+
     .map-container { flex: 1; position: relative; }
     #map { width: 100%; height: 100%; background: #e2e8f0; }
 
     .status-msg { font-size: 0.75rem; padding: 8px 12px; border-radius: 6px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 500; }
 
-    /* Map UI Controls */
+    /* Map Controls */
     .coords-box {
       background: rgba(255, 255, 255, 0.95);
       padding: 6px 12px;
@@ -152,18 +199,26 @@
     }
     .legend-item { display: flex; align-items: center; gap: 8px; font-weight: 600; }
     .legend-color { width: 12px; height: 12px; border-radius: 50%; }
-    .legend-line { width: 16px; height: 3px; }
   </style>
 </head>
 <body>
 
   <header>
     <div class="brand">
-      <div class="brand-icon"><i class="fa-solid fa-water"></i></div>
-      <div class="brand-title">
+      <div class="brand-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+      <div class="brand-info">
+        <!-- Institution Line -->
+        <div class="inst-line">SODIC-CU · University of Chittagong</div>
+        <!-- Title -->
         <h1>Bay of Bengal PFZ Forecast</h1>
-        <p>Oceanographic Monitoring & Spatial Analytics</p>
+        <!-- Subtitle -->
+        <p>Daily satellite-based Potential Fishing Zone forecasts</p>
       </div>
+    </div>
+    <!-- Tagline -->
+    <div class="tagline-badge">
+      <i class="fa-solid fa-award" style="color: var(--primary);"></i>
+      Bangladesh's first satellite-based ocean data and research center
     </div>
   </header>
 
@@ -200,7 +255,7 @@
         </div>
       </div>
 
-      <!-- Search Location / Coordinates -->
+      <!-- Jump to Coordinates -->
       <div class="control-group">
         <label><i class="fa-solid fa-location-crosshairs"></i> Jump to Coordinates (Lat, Lng)</label>
         <div style="display: flex; gap: 6px;">
@@ -209,7 +264,7 @@
         </div>
       </div>
 
-      <!-- Visibility Filters -->
+      <!-- Filters -->
       <div class="control-group">
         <label>Filter Display</label>
         <div class="filter-box">
@@ -218,6 +273,7 @@
         </div>
       </div>
 
+      <!-- Map Style -->
       <div class="control-group">
         <label>Map View Mode</label>
         <select id="map-style" onchange="changeMapStyle()">
@@ -226,7 +282,7 @@
         </select>
       </div>
 
-      <!-- Tools & Actions -->
+      <!-- Tools -->
       <div class="control-group" style="gap: 8px;">
         <button class="btn-action" onclick="zoomToExtent()">
           <i class="fa-solid fa-expand" style="color: var(--primary);"></i> Zoom to Forecast Extent
@@ -240,6 +296,23 @@
           <i class="fa-solid fa-download" style="color: #10b981;"></i> Export Active CSV
         </button>
       </div>
+
+      <!-- About Section -->
+      <div class="info-card">
+        <h4><i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> About SODIC-CU</h4>
+        SODIC-CU at the University of Chittagong is Bangladesh's first satellite-based ocean data and research center. Its researchers produce daily PFZ forecasts for the Bay of Bengal.
+      </div>
+
+      <!-- Disclaimer Section -->
+      <div class="info-card disclaimer-card">
+        <h4><i class="fa-solid fa-triangle-exclamation"></i> Disclaimer</h4>
+        Forecasts are indicative. Use them with local weather and safety advisories.
+      </div>
+
+      <!-- Footer -->
+      <footer>
+        © 2026 SODIC-CU, University of Chittagong, Bangladesh
+      </footer>
 
     </div>
 
@@ -265,7 +338,7 @@
     let strongLayerGroup = L.layerGroup().addTo(map);
     let modLayerGroup = L.layerGroup().addTo(map);
 
-    // Live Coordinates Box
+    // Live Coordinates
     const CoordsControl = L.Control.extend({
       options: { position: 'bottomright' },
       onAdd: function () {
@@ -289,26 +362,11 @@
         container.innerHTML = `
           <div class="legend-item"><div class="legend-color" style="background:#ef4444"></div> Strong PFZ</div>
           <div class="legend-item"><div class="legend-color" style="background:#eab308"></div> Moderate PFZ</div>
-          <div class="legend-item"><div class="legend-line" style="border-top:2px dashed #38bdf8"></div> Bangladesh EEZ</div>
         `;
         return container;
       }
     });
     map.addControl(new LegendControl());
-
-    // Load Bangladesh EEZ GeoJSON Overlay directly
-    fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_boundary_lines_land.geojson')
-      .then(res => res.json())
-      .catch(() => null);
-
-    // Draw BD EEZ Approx Line Layer
-    const eezCoordinates = [
-      [21.65, 89.15], [20.70, 89.00], [19.50, 89.50], [17.50, 89.70], 
-      [17.50, 90.50], [18.00, 91.50], [20.20, 92.30], [20.65, 92.35]
-    ];
-    L.polyline(eezCoordinates, { color: '#38bdf8', weight: 2, dashArray: '6, 6' })
-      .addTo(map)
-      .bindPopup("<b>Bangladesh EEZ Limit</b>");
 
     // Distance Measurement Logic
     let isMeasuring = false;
