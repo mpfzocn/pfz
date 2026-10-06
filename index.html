@@ -3,17 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bay of Bengal PFZ Forecast System</title>
+  <title>Bay of Bengal PFZ Multi-Date Forecast</title>
   
-  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
-  <!-- FontAwesome & Google Fonts -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- PapaParse for CSV & shpjs for ZIP Shapefiles -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
 
@@ -45,7 +41,6 @@
     .brand-icon { width: 38px; height: 38px; background: rgba(56, 189, 248, 0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.2rem; }
     .brand-title h1 { font-size: 1.15rem; font-weight: 700; color: #fff; }
     .brand-title p { font-size: 0.75rem; color: var(--text-muted); }
-    .header-badge { background: #1e293b; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color); color: var(--primary); }
 
     .app-container { display: flex; flex: 1; overflow: hidden; }
     
@@ -61,18 +56,14 @@
       z-index: 500;
     }
 
-    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .stat-card { background: rgba(11, 15, 25, 0.6); border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; text-align: center; }
-    .stat-card .val { font-size: 1.2rem; font-weight: 700; }
-    .stat-card .lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
-
     .control-group { display: flex; flex-direction: column; gap: 6px; }
     label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
     select, input { width: 100%; padding: 0.65rem 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: #0f172a; color: #fff; font-size: 0.85rem; outline: none; }
 
-    .legend-box { background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-around; }
-    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-card { background: rgba(11, 15, 25, 0.6); border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; text-align: center; }
+    .stat-card .val { font-size: 1.2rem; font-weight: 700; }
+    .stat-card .lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
 
     .map-container { flex: 1; position: relative; }
     #map { width: 100%; height: 100%; background: #0b0f19; }
@@ -87,19 +78,22 @@
       <div class="brand-icon"><i class="fa-solid fa-water"></i></div>
       <div class="brand-title">
         <h1>Bay of Bengal PFZ Forecast</h1>
-        <p>Oceanographic Modeling & Potential Fishing Zone System</p>
+        <p>Multi-Date Oceanographic Monitoring System</p>
       </div>
-    </div>
-    <div class="header-badge">
-      <i class="fa-regular fa-calendar"></i> <span>04-05 Oct 2026</span>
     </div>
   </header>
 
   <div class="app-container">
     <div class="sidebar">
       
+      <!-- Date Selector -->
+      <div class="control-group">
+        <label><i class="fa-regular fa-calendar-days"></i> Select Forecast Date</label>
+        <input type="date" id="forecast-date" value="2026-10-05" min="2026-09-20" max="2026-10-05" onchange="loadDataForSelectedDate()">
+      </div>
+
       <div class="status-msg" id="status">
-        <i class="fa-solid fa-spinner fa-spin"></i> Loading Data from GitHub...
+        <i class="fa-solid fa-circle-info"></i> Ready
       </div>
 
       <div class="stat-grid">
@@ -114,17 +108,6 @@
         <div class="stat-card">
           <div class="lbl">Moderate</div>
           <div class="val" id="stat-mod" style="color: var(--mod-pfz);">0</div>
-        </div>
-      </div>
-
-      <div class="legend-box">
-        <div class="legend-item">
-          <span class="dot" style="background: var(--strong-pfz);"></span>
-          Strong PFZ
-        </div>
-        <div class="legend-item">
-          <span class="dot" style="background: var(--mod-pfz);"></span>
-          Moderate PFZ
         </div>
       </div>
 
@@ -155,53 +138,80 @@
     layers.dark.addTo(map);
     let currentLayer = layers.dark;
 
-    // 1. Auto Load CSV Grid Data
-    Papa.parse('pfz_all_cells_2026-10-05.csv', {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: function(results) {
-        let strong = 0, mod = 0;
-        results.data.forEach(p => {
-          const lat = parseFloat(p.latitude || p.Latitude);
-          const lng = parseFloat(p.longitude || p.Longitude);
-          const cls = parseInt(p.pfz_class || p.PFZ_Class);
-          
-          if (!isNaN(lat) && !isNaN(lng) && (cls === 1 || cls === 2)) {
-            const isStrong = cls === 2;
-            if (isStrong) strong++; else mod++;
+    let activeLayerGroup = L.layerGroup().addTo(map);
 
-            L.circleMarker([lat, lng], {
-              radius: isStrong ? 4 : 3,
-              fillColor: isStrong ? '#facc15' : '#22c55e',
-              color: isStrong ? '#facc15' : '#22c55e',
-              weight: 0.5,
-              fillOpacity: 0.7
-            }).addTo(map);
-          }
-        });
+    function loadDataForSelectedDate() {
+      const selectedDate = document.getElementById('forecast-date').value; // YYYY-MM-DD
+      const status = document.getElementById('status');
+      
+      status.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading data for ${selectedDate}...`;
+      activeLayerGroup.clearLayers();
 
-        document.getElementById('stat-total').innerText = (strong + mod).toLocaleString();
-        document.getElementById('stat-strong').innerText = strong.toLocaleString();
-        document.getElementById('stat-mod').innerText = mod.toLocaleString();
-        document.getElementById('status').innerText = '✅ Data Loaded Successfully';
-      }
-    });
+      let strongCount = 0, modCount = 0;
 
-    // 2. Auto Load Shapefiles (ZIPs)
-    function loadPolygonZip(url, color, label) {
-      shp(url).then(function(geojson) {
-        L.geoJSON(geojson, {
-          style: { color: color, fillColor: color, fillOpacity: 0.4, weight: 2 },
-          onEachFeature: function (f, l) {
-            l.bindPopup(`<b>${label} Polygon</b><br>Forecast Date: 04 Oct 2026`);
-          }
-        }).addTo(map);
-      }).catch(err => console.log('Loading ' + label + '...'));
+      // 1. Load CSV Grid for selected date (e.g. pfz_all_cells_2026-10-05.csv)
+      const csvFileName = `pfz_all_cells_${selectedDate}.csv`;
+
+      Papa.parse(csvFileName, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          results.data.forEach(p => {
+            const lat = parseFloat(p.latitude || p.Latitude);
+            const lng = parseFloat(p.longitude || p.Longitude);
+            const cls = parseInt(p.pfz_class || p.PFZ_Class);
+            
+            if (!isNaN(lat) && !isNaN(lng) && (cls === 1 || cls === 2)) {
+              const isStrong = cls === 2;
+              if (isStrong) strongCount++; else modCount++;
+
+              const marker = L.circleMarker([lat, lng], {
+                radius: isStrong ? 4 : 3,
+                fillColor: isStrong ? '#facc15' : '#22c55e',
+                color: isStrong ? '#facc15' : '#22c55e',
+                weight: 0.5,
+                fillOpacity: 0.7
+              });
+              
+              marker.bindPopup(`<b>PFZ Cell</b><br>Date: ${selectedDate}<br>Lat: ${lat}, Lng: ${lng}`);
+              activeLayerGroup.addLayer(marker);
+            }
+          });
+
+          document.getElementById('stat-total').innerText = (strongCount + modCount).toLocaleString();
+          document.getElementById('stat-strong').innerText = strongCount.toLocaleString();
+          document.getElementById('stat-mod').innerText = modCount.toLocaleString();
+          status.innerHTML = `✅ Displaying data for ${selectedDate}`;
+        },
+        error: function() {
+          status.innerHTML = `⚠️ CSV not found for ${selectedDate}`;
+        }
+      });
+
+      // 2. Load Zip Polygons if available (e.g. Strong_2026-10-04.zip / Strong.zip)
+      loadPolygonZip(`Strong_${selectedDate}.zip`, '#facc15', 'Strong PFZ', selectedDate);
+      loadPolygonZip(`Moderate_${selectedDate}.zip`, '#22c55e', 'Moderate PFZ', selectedDate);
     }
 
-    loadPolygonZip('Strong.zip', '#facc15', 'Strong PFZ');
-    loadPolygonZip('Moderate.zip', '#22c55e', 'Moderate PFZ');
+    function loadPolygonZip(url, color, label, dateStr) {
+      shp(url).then(function(geojson) {
+        const polyLayer = L.geoJSON(geojson, {
+          style: { color: color, fillColor: color, fillOpacity: 0.4, weight: 2 },
+          onEachFeature: function (f, l) {
+            l.bindPopup(`<b>${label} Polygon</b><br>Date: ${dateStr}`);
+          }
+        });
+        activeLayerGroup.addLayer(polyLayer);
+      }).catch(err => {
+        // Fallback to default Strong.zip / Moderate.zip if date-specific zip doesn't exist
+        if(url.includes('Strong')) {
+          shp('Strong.zip').then(g => activeLayerGroup.addLayer(L.geoJSON(g, {style:{color:color,fillColor:color,fillOpacity:0.4}}))).catch(e=>{});
+        } else {
+          shp('Moderate.zip').then(g => activeLayerGroup.addLayer(L.geoJSON(g, {style:{color:color,fillColor:color,fillOpacity:0.4}}))).catch(e=>{});
+        }
+      });
+    }
 
     function changeMapStyle() {
       const style = document.getElementById('map-style').value;
@@ -209,6 +219,9 @@
       currentLayer = layers[style];
       currentLayer.addTo(map);
     }
+
+    // Initial Load
+    loadDataForSelectedDate();
   </script>
 </body>
 </html>
