@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bay of Bengal PFZ Forecast Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; height: 100vh; }
+    header { background: #1e293b; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+    h1 { font-size: 1.25rem; color: #38bdf8; }
+    .container { display: flex; flex: 1; overflow: hidden; }
+    .sidebar { width: 320px; background: #1e293b; padding: 1rem; overflow-y: auto; border-right: 1px solid #334155; }
+    .map-container { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; }
+    .card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    label { font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 0.5rem; }
+    input, select, button { width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff; margin-bottom: 0.75rem; }
+    button { background: #0284c7; font-weight: bold; cursor: pointer; border: none; }
+    button:hover { background: #0369a1; }
+    table { width: 100%; font-size: 0.8rem; border-collapse: collapse; margin-top: 0.5rem; }
+    th, td { padding: 6px; text-align: left; border-bottom: 1px solid #334155; }
+    th { color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🌊 বঙ্গোপসাগর PFZ পূর্বাভাস (Potential Fishing Zone)</h1>
+    <div style="font-size: 0.85rem; color: #94a3b8;">User: mpfzocn</div>
+  </header>
+
+  <div class="container">
+    <div class="sidebar">
+      <div class="card">
+        <label for="forecast-date">পূর্বাভাসের তারিখ (Select Date)</label>
+        <input type="date" id="forecast-date" value="2026-10-06">
+
+        <label for="zone-filter">অঞ্চল নির্বাচন (Zone)</label>
+        <select id="zone-filter">
+          <option value="all">সকল অঞ্চল (All Zones)</option>
+          <option value="cox">কক্সবাজার offshore</option>
+          <option value="swatch">Swatch of No Ground</option>
+          <option value="kuakata">কুয়াকাটা / সুন্দরবন offshore</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <h3>📍 চিহ্নিত কোঅর্ডিনেটসমূহ</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>অঞ্চল</th>
+              <th>অক্ষাংশ (Lat)</th>
+              <th>দ্রাঘিমাংশ (Long)</th>
+            </tr>
+          </thead>
+          <tbody id="coord-table">
+            <!-- Table Rows inserted by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <script>
+    const map = L.map('map').setView([20.8, 90.0], 7);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const pfzPoints = [
+      { name: "Swatch of No Ground - Point A", lat: 21.05, lng: 89.35, depth: "65m", sst: "28.5°C", zone: "swatch" },
+      { name: "Cox's Bazar Deep Sea - Point B", lat: 20.42, lng: 91.80, depth: "45m", sst: "29.1°C", zone: "cox" },
+      { name: "Kuakata South Offshore - Point C", lat: 20.90, lng: 90.10, depth: "38m", sst: "28.8°C", zone: "kuakata" }
+    ];
+
+    function renderPoints() {
+      const tbody = document.getElementById('coord-table');
+      tbody.innerHTML = '';
+
+      pfzPoints.forEach(p => {
+        const marker = L.marker([p.lat, p.lng]).addTo(map);
+        marker.bindPopup(`
+          <b>${p.name}</b><br>
+          <b>Lat:</b> ${p.lat}<br>
+          <b>Long:</b> ${p.lng}<br>
+          <b>Depth:</b> ${p.depth}<br>
+          <b>SST:</b> ${p.sst}
+        `);
+
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${p.name}</td><td>${p.lat}</td><td>${p.lng}</td>`;
+        tbody.appendChild(row);
+      });
+    }
+
+    renderPoints();
+  </script>
+</body>
+</html>
