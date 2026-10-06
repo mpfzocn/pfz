@@ -163,7 +163,7 @@
   </div>
 
   <script>
-    let currentDate = new Date(); // Defaults to today's date
+    let currentDate = new Date(); // Defaults to Today
 
     const map = L.map('map', { center: [19.80, 90.35], zoom: 7 });
 
@@ -172,7 +172,6 @@
       street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 })
     };
 
-    // Default layer set to Satellite Imagery
     layers.satellite.addTo(map);
     let currentLayer = layers.satellite;
 
@@ -215,7 +214,7 @@
 
       let strongCount = 0, modCount = 0;
 
-      // 1. Load CSV Grid for selected date
+      // Dynamic CSV filename
       const csvFileName = `pfz_all_cells_${selectedDateStr}.csv`;
 
       Papa.parse(csvFileName, {
@@ -224,9 +223,10 @@
         skipEmptyLines: true,
         complete: function(results) {
           results.data.forEach(p => {
-            const lat = parseFloat(p.latitude || p.Latitude);
-            const lng = parseFloat(p.longitude || p.Longitude);
-            const cls = parseInt(p.pfz_class || p.PFZ_Class);
+            // Flexible Column Name Matching
+            const lat = parseFloat(p.latitude || p.Latitude || p.lat || p.Lat);
+            const lng = parseFloat(p.longitude || p.Longitude || p.lon || p.Lon || p.lng || p.Lng);
+            const cls = parseInt(p.pfz_class || p.PFZ_Class || p.class || p.Class || p.grid_code);
             
             if (!isNaN(lat) && !isNaN(lng) && (cls === 1 || cls === 2)) {
               const isStrong = cls === 2;
@@ -248,17 +248,22 @@
           document.getElementById('stat-total').innerText = (strongCount + modCount).toLocaleString();
           document.getElementById('stat-strong').innerText = strongCount.toLocaleString();
           document.getElementById('stat-mod').innerText = modCount.toLocaleString();
-          status.innerHTML = `✅ Displaying data for ${selectedDateStr}`;
+
+          if ((strongCount + modCount) > 0) {
+            status.innerHTML = `✅ Displaying ${strongCount + modCount} PFZ cells for ${selectedDateStr}`;
+          } else {
+            status.innerHTML = `⚠️ No PFZ class 1 or 2 found in CSV for ${selectedDateStr}`;
+          }
         },
         error: function() {
           document.getElementById('stat-total').innerText = '0';
           document.getElementById('stat-strong').innerText = '0';
           document.getElementById('stat-mod').innerText = '0';
-          status.innerHTML = `⚠️ CSV not found for ${selectedDateStr}`;
+          status.innerHTML = `❌ File not found: pfz_all_cells_${selectedDateStr}.csv`;
         }
       });
 
-      // 2. Load Zip Polygons if available
+      // Polygons (optional)
       loadPolygonZip(`Strong_${selectedDateStr}.zip`, '#facc15', 'Strong PFZ', selectedDateStr);
       loadPolygonZip(`Moderate_${selectedDateStr}.zip`, '#22c55e', 'Moderate PFZ', selectedDateStr);
     }
@@ -273,12 +278,7 @@
         });
         activeLayerGroup.addLayer(polyLayer);
       }).catch(err => {
-        // Fallback to default Strong.zip / Moderate.zip if date-specific zip is missing
-        if(url.includes('Strong')) {
-          shp('Strong.zip').then(g => activeLayerGroup.addLayer(L.geoJSON(g, {style:{color:color,fillColor:color,fillOpacity:0.4}}))).catch(e=>{});
-        } else {
-          shp('Moderate.zip').then(g => activeLayerGroup.addLayer(L.geoJSON(g, {style:{color:color,fillColor:color,fillOpacity:0.4}}))).catch(e=>{});
-        }
+        // Silent catch if zip not uploaded
       });
     }
 
@@ -289,7 +289,7 @@
       currentLayer.addTo(map);
     }
 
-    // Initial Load for Today
+    // Initial Load
     updateDateLabel();
     loadDataForSelectedDate();
   </script>
