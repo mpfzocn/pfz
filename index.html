@@ -44,13 +44,6 @@
     .brand-info h1 { font-size: 1.15rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
     .brand-info p { font-size: 0.75rem; color: var(--text-muted); }
     
-    .header-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
-    }
-
     .tagline-badge { 
       background: #f8fafc; 
       border: 1px solid var(--border-color); 
@@ -62,13 +55,6 @@
       display: flex;
       align-items: center;
       gap: 6px;
-    }
-
-    .developer-credit {
-      font-size: 0.68rem;
-      color: var(--text-muted);
-      font-weight: 500;
-      letter-spacing: -0.1px;
     }
 
     .app-container { display: flex; flex: 1; overflow: hidden; }
@@ -245,14 +231,9 @@
         <p>Daily satellite-based Potential Fishing Zone forecasts</p>
       </div>
     </div>
-    <div class="header-right">
-      <div class="tagline-badge">
-        <i class="fa-solid fa-award" style="color: var(--primary);"></i>
-        Bangladesh's first satellite-based ocean data and research center
-      </div>
-      <div class="developer-credit">
-        Developed by Md. Mazaharul Islam, Research Associate, Coastal Ocean Observation & Prediction Lab (COOPLab), University of Chittagong
-      </div>
+    <div class="tagline-badge">
+      <i class="fa-solid fa-award" style="color: var(--primary);"></i>
+      Bangladesh's first satellite-based ocean data and research center
     </div>
   </header>
 
@@ -318,8 +299,8 @@
       <div class="control-group">
         <label>Map View Mode</label>
         <select id="map-style" onchange="changeMapStyle()">
+          <option value="street" selected>Standard Navigation</option>
           <option value="satellite">Satellite Imagery</option>
-          <option value="street">Standard Navigation</option>
         </select>
       </div>
 
@@ -368,13 +349,17 @@
 
     const map = L.map('map', { center: [19.80, 90.35], zoom: 7 });
 
+    // Set custom attribution text on the Leaflet map control (left side of "Leaflet")
+    map.attributionControl.setPrefix('Developed by Md. Mazaharul Islam, Research Associate, Coastal Ocean Observation & Prediction Lab (COOPLab), University of Chittagong | <a href="https://leafletjs.com" title="A JavaScript library for interactive maps">Leaflet</a>');
+
     const layers = {
-      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
-      street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 })
+      street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }),
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 })
     };
 
-    layers.satellite.addTo(map);
-    let currentLayer = layers.satellite;
+    // Set Standard Navigation as the default basemap
+    layers.street.addTo(map);
+    let currentLayer = layers.street;
 
     let strongLayerGroup = L.layerGroup().addTo(map);
     let modLayerGroup = L.layerGroup().addTo(map);
