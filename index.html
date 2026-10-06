@@ -15,14 +15,14 @@
 
   <style>
     :root {
-      --bg-dark: #0b0f19;
-      --card-bg: #151c2c;
-      --border-color: #232e42;
-      --primary: #38bdf8;
-      --strong-pfz: #facc15;
-      --mod-pfz: #22c55e;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
+      --bg-dark: #f1f5f9;
+      --card-bg: #ffffff;
+      --border-color: #cbd5e1;
+      --primary: #0284c7;
+      --strong-pfz: #ef4444; /* Red */
+      --mod-pfz: #eab308;    /* Yellow */
+      --text-main: #0f172a;
+      --text-muted: #64748b;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -36,10 +36,11 @@
       align-items: center;
       border-bottom: 1px solid var(--border-color);
       z-index: 1000;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-icon { width: 38px; height: 38px; background: rgba(56, 189, 248, 0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.2rem; }
-    .brand-title h1 { font-size: 1.15rem; font-weight: 700; color: #fff; }
+    .brand-icon { width: 38px; height: 38px; background: rgba(2, 132, 199, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.2rem; }
+    .brand-title h1 { font-size: 1.15rem; font-weight: 700; color: #0f172a; }
     .brand-title p { font-size: 0.75rem; color: var(--text-muted); }
 
     .app-container { display: flex; flex: 1; overflow: hidden; }
@@ -50,248 +51,69 @@
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      gap: 0.9rem;
-      padding: 1.1rem;
+      gap: 1.1rem;
+      padding: 1.25rem;
       overflow-y: auto;
       z-index: 500;
+      box-shadow: 2px 0 6px rgba(0,0,0,0.02);
     }
 
     .control-group { display: flex; flex-direction: column; gap: 6px; }
     label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
-    select { width: 100%; padding: 0.65rem 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: #0f172a; color: #fff; font-size: 0.85rem; outline: none; }
+    select { width: 100%; padding: 0.65rem 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: #f8fafc; color: #0f172a; font-size: 0.85rem; outline: none; }
 
     /* Date Navigation Styles */
     .date-nav {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #0f172a;
+      background: #f8fafc;
       border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 4px;
     }
     .date-btn {
-      background: #1e293b;
+      background: #ffffff;
       color: var(--primary);
       border: 1px solid var(--border-color);
       padding: 8px 14px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 0.85rem;
+      font-weight: 600;
       transition: all 0.2s ease;
     }
     .date-btn:hover {
       background: var(--primary);
-      color: #000;
+      color: #fff;
     }
     .date-display {
       font-size: 0.85rem;
       font-weight: 600;
-      color: #fff;
+      color: #0f172a;
       text-align: center;
     }
 
+    .btn-action {
+      width: 100%;
+      background: #ffffff;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 0.65rem 0.8rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .btn-action:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
     .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .stat-card { background: rgba(11, 15, 25, 0.6); border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; text-align: center; }
-    .stat-card .val { font-size: 1.2rem; font-weight: 700; }
-    .stat-card .lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
-
-    .map-container { flex: 1; position: relative; }
-    #map { width: 100%; height: 100%; background: #0b0f19; }
-
-    .status-msg { font-size: 0.75rem; padding: 6px 10px; border-radius: 6px; background: rgba(56, 189, 248, 0.1); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.2); }
-  </style>
-</head>
-<body>
-
-  <header>
-    <div class="brand">
-      <div class="brand-icon"><i class="fa-solid fa-water"></i></div>
-      <div class="brand-title">
-        <h1>Bay of Bengal PFZ Forecast</h1>
-        <p>Multi-Date Oceanographic Monitoring System</p>
-      </div>
-    </div>
-  </header>
-
-  <div class="app-container">
-    <div class="sidebar">
-      
-      <!-- Date Navigation Control -->
-      <div class="control-group">
-        <label><i class="fa-regular fa-calendar-days"></i> Forecast Date</label>
-        <div class="date-nav">
-          <button class="date-btn" onclick="navigateDate(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-          <div class="date-display" id="date-label">-- --- ----</div>
-          <button class="date-btn" onclick="navigateDate(1)"><i class="fa-solid fa-chevron-right"></i></button>
-        </div>
-      </div>
-
-      <div class="status-msg" id="status">
-        <i class="fa-solid fa-circle-info"></i> Ready
-      </div>
-
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="lbl">Total Cells</div>
-          <div class="val" id="stat-total" style="color: var(--primary);">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="lbl">Strong PFZ</div>
-          <div class="val" id="stat-strong" style="color: var(--strong-pfz);">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="lbl">Moderate</div>
-          <div class="val" id="stat-mod" style="color: var(--mod-pfz);">0</div>
-        </div>
-      </div>
-
-      <!-- Map View Mode Selector (2 Options Only) -->
-      <div class="control-group">
-        <label>Map View Mode</label>
-        <select id="map-style" onchange="changeMapStyle()">
-          <option value="satellite">Satellite Imagery</option>
-          <option value="street">Standard Navigation</option>
-        </select>
-      </div>
-
-    </div>
-
-    <div class="map-container">
-      <div id="map"></div>
-    </div>
-  </div>
-
-  <script>
-    let currentDate = new Date(); // Defaults to Today
-
-    const map = L.map('map', { center: [19.80, 90.35], zoom: 7 });
-
-    const layers = {
-      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
-      street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 })
-    };
-
-    layers.satellite.addTo(map);
-    let currentLayer = layers.satellite;
-
-    let activeLayerGroup = L.layerGroup().addTo(map);
-
-    function formatDateToYYYYMMDD(dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    function updateDateLabel() {
-      const options = { day: '2-digit', month: 'short', year: 'numeric' };
-      const formattedText = currentDate.toLocaleDateString('en-GB', options);
-      
-      const todayStr = formatDateToYYYYMMDD(new Date());
-      const selectedStr = formatDateToYYYYMMDD(currentDate);
-
-      const labelContainer = document.getElementById('date-label');
-      if (selectedStr === todayStr) {
-        labelContainer.innerHTML = `${formattedText} <span style="color: var(--primary); font-size: 0.75rem;">(Today)</span>`;
-      } else {
-        labelContainer.innerText = formattedText;
-      }
-    }
-
-    function navigateDate(days) {
-      currentDate.setDate(currentDate.getDate() + days);
-      updateDateLabel();
-      loadDataForSelectedDate();
-    }
-
-    function loadDataForSelectedDate() {
-      const selectedDateStr = formatDateToYYYYMMDD(currentDate);
-      const status = document.getElementById('status');
-      
-      status.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading data for ${selectedDateStr}...`;
-      activeLayerGroup.clearLayers();
-
-      let strongCount = 0, modCount = 0;
-
-      // Dynamic CSV filename
-      const csvFileName = `pfz_all_cells_${selectedDateStr}.csv`;
-
-      Papa.parse(csvFileName, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-          results.data.forEach(p => {
-            // Flexible Column Name Matching
-            const lat = parseFloat(p.latitude || p.Latitude || p.lat || p.Lat);
-            const lng = parseFloat(p.longitude || p.Longitude || p.lon || p.Lon || p.lng || p.Lng);
-            const cls = parseInt(p.pfz_class || p.PFZ_Class || p.class || p.Class || p.grid_code);
-            
-            if (!isNaN(lat) && !isNaN(lng) && (cls === 1 || cls === 2)) {
-              const isStrong = cls === 2;
-              if (isStrong) strongCount++; else modCount++;
-
-              const marker = L.circleMarker([lat, lng], {
-                radius: isStrong ? 4 : 3,
-                fillColor: isStrong ? '#facc15' : '#22c55e',
-                color: isStrong ? '#facc15' : '#22c55e',
-                weight: 0.5,
-                fillOpacity: 0.7
-              });
-              
-              marker.bindPopup(`<b>PFZ Cell</b><br>Date: ${selectedDateStr}<br>Lat: ${lat}, Lng: ${lng}`);
-              activeLayerGroup.addLayer(marker);
-            }
-          });
-
-          document.getElementById('stat-total').innerText = (strongCount + modCount).toLocaleString();
-          document.getElementById('stat-strong').innerText = strongCount.toLocaleString();
-          document.getElementById('stat-mod').innerText = modCount.toLocaleString();
-
-          if ((strongCount + modCount) > 0) {
-            status.innerHTML = `✅ Displaying ${strongCount + modCount} PFZ cells for ${selectedDateStr}`;
-          } else {
-            status.innerHTML = `⚠️ No PFZ class 1 or 2 found in CSV for ${selectedDateStr}`;
-          }
-        },
-        error: function() {
-          document.getElementById('stat-total').innerText = '0';
-          document.getElementById('stat-strong').innerText = '0';
-          document.getElementById('stat-mod').innerText = '0';
-          status.innerHTML = `❌ File not found: pfz_all_cells_${selectedDateStr}.csv`;
-        }
-      });
-
-      // Polygons (optional)
-      loadPolygonZip(`Strong_${selectedDateStr}.zip`, '#facc15', 'Strong PFZ', selectedDateStr);
-      loadPolygonZip(`Moderate_${selectedDateStr}.zip`, '#22c55e', 'Moderate PFZ', selectedDateStr);
-    }
-
-    function loadPolygonZip(url, color, label, dateStr) {
-      shp(url).then(function(geojson) {
-        const polyLayer = L.geoJSON(geojson, {
-          style: { color: color, fillColor: color, fillOpacity: 0.4, weight: 2 },
-          onEachFeature: function (f, l) {
-            l.bindPopup(`<b>${label} Polygon</b><br>Date: ${dateStr}`);
-          }
-        });
-        activeLayerGroup.addLayer(polyLayer);
-      }).catch(err => {
-        // Silent catch if zip not uploaded
-      });
-    }
-
-    function changeMapStyle() {
-      const style = document.getElementById('map-style').value;
-      map.removeLayer(currentLayer);
-      currentLayer = layers[style];
-      currentLayer.addTo(map);
-    }
-
-    // Initial Load
-    updateDateLabel();
-    loadDataForSelectedDate();
-  </script>
-</body>
-</html>
+    .stat-card { background: #f8fafc; border: 1px solid var(--border-color); padding: 10px; border-
