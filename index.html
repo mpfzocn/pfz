@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Bay of Bengal PFZ Forecast | SODIC-CU</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -29,7 +29,7 @@
 
     header {
       background: var(--card-bg);
-      padding: 0.75rem 1.5rem;
+      padding: 0.6rem 1.2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -37,19 +37,19 @@
       z-index: 1000;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-icon { width: 42px; height: 42px; background: rgba(2, 132, 199, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.3rem; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon { width: 38px; height: 38px; background: rgba(2, 132, 199, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.2rem; }
     
-    .brand-info .inst-line { font-size: 0.72rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
-    .brand-info h1 { font-size: 1.15rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
-    .brand-info p { font-size: 0.75rem; color: var(--text-muted); }
+    .brand-info .inst-line { font-size: 0.65rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .brand-info h1 { font-size: 1.05rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
+    .brand-info p { font-size: 0.7rem; color: var(--text-muted); }
     
     .tagline-badge { 
       background: #f8fafc; 
       border: 1px solid var(--border-color); 
-      padding: 6px 12px; 
+      padding: 5px 10px; 
       border-radius: 20px; 
-      font-size: 0.75rem; 
+      font-size: 0.72rem; 
       font-weight: 600; 
       color: #334155; 
       display: flex;
@@ -57,7 +57,28 @@
       gap: 6px;
     }
 
-    .app-container { display: flex; flex: 1; overflow: hidden; }
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Sidebar Mobile Toggle Button (Visible on Header for Mobile) */
+    .menu-toggle-btn {
+      display: none;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .app-container { display: flex; flex: 1; position: relative; overflow: hidden; }
     
     .sidebar {
       width: 360px;
@@ -68,9 +89,20 @@
       gap: 1.1rem;
       padding: 1.25rem;
       overflow-y: auto;
-      z-index: 500;
+      z-index: 2000;
       box-shadow: 2px 0 6px rgba(0,0,0,0.02);
+      transition: transform 0.3s ease-in-out;
     }
+
+    .sidebar-header {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .sidebar-header h3 { font-size: 1rem; color: #0f172a; }
+    .close-btn { background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; }
 
     .control-group { display: flex; flex-direction: column; gap: 6px; }
     label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
@@ -175,7 +207,7 @@
       font-weight: 500;
     }
 
-    .map-container { flex: 1; position: relative; }
+    .map-container { flex: 1; position: relative; height: 100%; }
     #map { width: 100%; height: 100%; background: #e2e8f0; }
 
     .status-msg { font-size: 0.75rem; padding: 8px 12px; border-radius: 6px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 500; }
@@ -193,19 +225,19 @@
 
     .legend-box {
       background: rgba(255, 255, 255, 0.95);
-      padding: 10px 14px;
+      padding: 8px 12px;
       border-radius: 8px;
       border: 1px solid var(--border-color);
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: #0f172a;
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
     .legend-item { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-    .legend-color { width: 12px; height: 12px; border-radius: 50%; }
-    .legend-line { width: 16px; height: 3px; }
+    .legend-color { width: 10px; height: 10px; border-radius: 50%; }
+    .legend-line { width: 14px; height: 3px; }
 
     /* Custom Vessel Marker Styling */
     .vessel-icon {
@@ -218,6 +250,68 @@
       justify-content: center;
       box-shadow: 0 0 10px rgba(2, 132, 199, 0.6);
     }
+
+    /* Floating Overlay Backdrop for Mobile */
+    .sidebar-overlay {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.4);
+      z-index: 1500;
+    }
+
+    /* Floating Quick Map Control Bar for Mobile */
+    .mobile-quick-bar {
+      display: none;
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 1000;
+      gap: 8px;
+    }
+    .floating-btn {
+      background: white;
+      color: var(--primary);
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      .tagline-badge { display: none; }
+      .menu-toggle-btn { display: flex; }
+      .sidebar-header { display: flex; }
+      .mobile-quick-bar { display: flex; }
+
+      .sidebar {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 320px;
+        max-width: 85%;
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      .brand-info h1 { font-size: 0.95rem; }
+      .brand-info p { font-size: 0.65rem; }
+    }
   </style>
 </head>
 <body>
@@ -226,20 +320,35 @@
     <div class="brand">
       <div class="brand-icon"><i class="fa-solid fa-satellite-dish"></i></div>
       <div class="brand-info">
-        <div class="inst-line">Satellite Ocean Observation and Data Innovation Center (SODIC-CU) · University of Chittagong</div>
+        <div class="inst-line">SODIC-CU · University of Chittagong</div>
         <h1>Bay of Bengal PFZ Forecast</h1>
         <p>Daily satellite-based Potential Fishing Zone forecasts</p>
       </div>
     </div>
-    <div class="tagline-badge">
-      <i class="fa-solid fa-award" style="color: var(--primary);"></i>
-      Bangladesh's first satellite-based ocean data and research center
+    
+    <div class="header-controls">
+      <div class="tagline-badge">
+        <i class="fa-solid fa-award" style="color: var(--primary);"></i>
+        Bangladesh's first satellite-based ocean data center
+      </div>
+      <button class="menu-toggle-btn" onclick="toggleSidebar()">
+        <i class="fa-solid fa-sliders"></i> Filters & Tools
+      </button>
     </div>
   </header>
 
   <div class="app-container">
-    <div class="sidebar">
+    
+    <!-- Mobile Overlay -->
+    <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="sidebar">
       
+      <div class="sidebar-header">
+        <h3><i class="fa-solid fa-sliders" style="color: var(--primary);"></i> Forecast Controls</h3>
+        <button class="close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
       <!-- Date Navigation -->
       <div class="control-group">
         <label><i class="fa-regular fa-calendar-days"></i> Forecast Date</label>
@@ -322,7 +431,7 @@
       <!-- About Section -->
       <div class="info-card">
         <h4><i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> About SODIC-CU</h4>
-        SODIC-CU at the University of Chittagong is Bangladesh's first satellite-based ocean data and research center. Its researchers produce daily PFZ forecasts for the Bay of Bengal.
+        SODIC-CU at the University of Chittagong is Bangladesh's first satellite-based ocean data and research center.
       </div>
 
       <!-- Warning Disclaimer Box -->
@@ -339,6 +448,16 @@
     </div>
 
     <div class="map-container">
+      <!-- Quick Floating Control Buttons for Mobile Map View -->
+      <div class="mobile-quick-bar">
+        <button class="floating-btn" onclick="toggleGPS()">
+          <i class="fa-solid fa-crosshairs" style="color: var(--primary);"></i> GPS
+        </button>
+        <button class="floating-btn" onclick="toggleSidebar()">
+          <i class="fa-solid fa-bars"></i> Menu
+        </button>
+      </div>
+
       <div id="map"></div>
     </div>
   </div>
@@ -349,7 +468,7 @@
 
     const map = L.map('map', { center: [19.80, 90.35], zoom: 7 });
 
-    // Set custom attribution text on the Leaflet map control (left side of "Leaflet")
+    // Custom attribution on Leaflet map control (left side of "Leaflet")
     map.attributionControl.setPrefix('Developed by Md. Mazaharul Islam, Research Associate, Coastal Ocean Observation & Prediction Lab (COOPLab), University of Chittagong | <a href="https://leafletjs.com" title="A JavaScript library for interactive maps">Leaflet</a>');
 
     const layers = {
@@ -357,7 +476,7 @@
       satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 })
     };
 
-    // Set Standard Navigation as the default basemap
+    // Standard Navigation as default basemap
     layers.street.addTo(map);
     let currentLayer = layers.street;
 
@@ -369,6 +488,14 @@
     let watchId = null;
     let vesselMarker = null;
     let vesselAccuracyCircle = null;
+
+    // Toggle Mobile Sidebar Drawer
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('overlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('active');
+    }
 
     // Live Coordinates Display Control
     const CoordsControl = L.Control.extend({
@@ -468,7 +595,7 @@
       }
     }
 
-    // Auto-fetch EEZ boundary from repository root directory
+    // Auto-fetch EEZ boundary from repository root
     fetch('EEZ.json')
       .then(res => {
         if (!res.ok) throw new Error('EEZ.json not found');
@@ -503,6 +630,7 @@
         btn.classList.add('active');
         btn.innerHTML = `<i class="fa-solid fa-times"></i> Stop Measuring`;
         map.getContainer().style.cursor = 'crosshair';
+        if (window.innerWidth <= 768) toggleSidebar(); // auto-close drawer on mobile when measuring
       } else {
         btn.classList.remove('active');
         btn.innerHTML = `<i class="fa-solid fa-ruler" style="color: #8b5cf6;"></i> Measure Distance`;
@@ -576,6 +704,9 @@
       if (allLayers.length > 0) {
         map.fitBounds(L.featureGroup(allLayers).getBounds(), { padding: [30, 30] });
       }
+      if (window.innerWidth <= 768 && document.getElementById('sidebar').classList.contains('open')) {
+        toggleSidebar();
+      }
     }
 
     function jumpToCoords() {
@@ -584,6 +715,7 @@
       if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
         map.setView([parts[0], parts[1]], 10);
         L.popup().setLatLng([parts[0], parts[1]]).setContent(`Location: ${parts[0]}, ${parts[1]}`).openOn(map);
+        if (window.innerWidth <= 768) toggleSidebar();
       } else {
         alert('Invalid coordinates. Please write in Lat, Lng format (e.g. 19.5, 90.2)');
       }
