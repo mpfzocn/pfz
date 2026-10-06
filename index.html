@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -146,7 +146,6 @@
     }
     .info-card h4 { font-size: 0.8rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
     
-    /* Dedicated Warning/Disclaimer Box */
     .disclaimer-box {
       background: #fff8f6;
       border: 1px solid #fca5a5;
@@ -215,7 +214,6 @@
     <div class="brand">
       <div class="brand-icon"><i class="fa-solid fa-satellite-dish"></i></div>
       <div class="brand-info">
-        <!-- Institution Title without colon -->
         <div class="inst-line">Satellite Ocean Observation and Data Innovation Center (SODIC-CU) · University of Chittagong</div>
         <h1>Bay of Bengal PFZ Forecast</h1>
         <p>Daily satellite-based Potential Fishing Zone forecasts</p>
@@ -242,12 +240,6 @@
 
       <div class="status-msg" id="status">
         <i class="fa-solid fa-circle-info"></i> Ready
-      </div>
-
-      <!-- EEZ File Loader Tool -->
-      <div class="control-group">
-        <label><i class="fa-solid fa-file-code"></i> Load EEZ JSON Boundary</label>
-        <input type="file" id="eez-file-input" accept=".json, .geojson" onchange="loadEEZFromFile(event)" style="font-size:0.75rem;">
       </div>
 
       <!-- Stats Grid -->
@@ -350,7 +342,7 @@
     let modLayerGroup = L.layerGroup().addTo(map);
     let eezLayer = null;
 
-    // Live Coordinates
+    // Live Coordinates Display Control
     const CoordsControl = L.Control.extend({
       options: { position: 'bottomright' },
       onAdd: function () {
@@ -366,7 +358,7 @@
       document.getElementById('coords-display').innerHTML = `Lat: ${e.latlng.lat.toFixed(4)}° | Lng: ${e.latlng.lng.toFixed(4)}°`;
     });
 
-    // Map Legend
+    // Map Legend Control
     const LegendControl = L.Control.extend({
       options: { position: 'bottomleft' },
       onAdd: function () {
@@ -381,29 +373,14 @@
     });
     map.addControl(new LegendControl());
 
-    // Auto-attempting relative EEZ file load (Works if EEZ.json is in project root folder)
+    // Auto-fetch EEZ boundary from repository root directory
     fetch('EEZ.json')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('EEZ.json not found');
+        return res.json();
+      })
       .then(data => renderEEZOnMap(data))
-      .catch(() => console.log('Relative EEZ.json file not auto-loaded. You can select it manually using the file picker.'));
-
-    // Function to handle local file upload (e.g. C:\Users\Lenovo\Downloads\EEZ.json)
-    function loadEEZFromFile(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const geojson = JSON.parse(evt.target.result);
-          renderEEZOnMap(geojson);
-          alert('EEZ Boundary successfully loaded onto the map!');
-        } catch(err) {
-          alert('Invalid JSON file format.');
-        }
-      };
-      reader.readAsText(file);
-    }
+      .catch(err => console.log('EEZ JSON boundary file could not be loaded:', err));
 
     function renderEEZOnMap(geojson) {
       if (eezLayer) map.removeLayer(eezLayer);
@@ -418,7 +395,7 @@
       }).addTo(map);
     }
 
-    // Measure Tool
+    // Measure Distance Tool
     let isMeasuring = false;
     let measurePoints = [];
     let measureLine = null;
