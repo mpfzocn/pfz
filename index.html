@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bay of Bengal PFZ Multi-Date Forecast</title>
+  <title>Bay of Bengal PFZ Multi-Date Forecast System</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -11,7 +11,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-  <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
 
   <style>
     :root {
@@ -60,9 +59,9 @@
 
     .control-group { display: flex; flex-direction: column; gap: 6px; }
     label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
-    select { width: 100%; padding: 0.65rem 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: #f8fafc; color: #0f172a; font-size: 0.85rem; outline: none; }
+    select, input[type="text"] { width: 100%; padding: 0.65rem 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: #f8fafc; color: #0f172a; font-size: 0.85rem; outline: none; }
 
-    /* Date Navigation Styles */
+    /* Date Navigation */
     .date-nav {
       display: flex;
       align-items: center;
@@ -83,16 +82,8 @@
       font-weight: 600;
       transition: all 0.2s ease;
     }
-    .date-btn:hover {
-      background: var(--primary);
-      color: #fff;
-    }
-    .date-display {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #0f172a;
-      text-align: center;
-    }
+    .date-btn:hover { background: var(--primary); color: #fff; }
+    .date-display { font-size: 0.85rem; font-weight: 600; color: #0f172a; text-align: center; }
 
     .btn-action {
       width: 100%;
@@ -110,10 +101,392 @@
       gap: 8px;
       transition: all 0.2s ease;
     }
-    .btn-action:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
+    .btn-action:hover { background: #f1f5f9; border-color: #94a3b8; }
+    .btn-action.active { background: #0284c7; color: white; border-color: #0284c7; }
+
+    .filter-box {
+      display: flex;
+      gap: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #f8fafc;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
     }
+    .filter-box label { cursor: pointer; display: flex; align-items: center; gap: 6px; color: #334155; }
 
     .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .stat-card { background: #f8fafc; border: 1px solid var(--border-color); padding: 10px; border-
+    .stat-card { background: #f8fafc; border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; text-align: center; }
+    .stat-card .val { font-size: 1.2rem; font-weight: 700; }
+    .stat-card .lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+
+    .map-container { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; background: #e2e8f0; }
+
+    .status-msg { font-size: 0.75rem; padding: 8px 12px; border-radius: 6px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 500; }
+
+    /* Map UI Controls */
+    .coords-box {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #334155;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .legend-box {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 0.75rem;
+      color: #0f172a;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .legend-color { width: 12px; height: 12px; border-radius: 50%; }
+    .legend-line { width: 16px; height: 3px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-water"></i></div>
+      <div class="brand-title">
+        <h1>Bay of Bengal PFZ Forecast</h1>
+        <p>Oceanographic Monitoring & Spatial Analytics</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-container">
+    <div class="sidebar">
+      
+      <!-- Date Controls -->
+      <div class="control-group">
+        <label><i class="fa-regular fa-calendar-days"></i> Forecast Date</label>
+        <div class="date-nav">
+          <button class="date-btn" onclick="navigateDate(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+          <div class="date-display" id="date-label">-- --- ----</div>
+          <button class="date-btn" onclick="navigateDate(1)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+
+      <div class="status-msg" id="status">
+        <i class="fa-solid fa-circle-info"></i> Ready
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="lbl">Total Cells</div>
+          <div class="val" id="stat-total" style="color: var(--primary);">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="lbl">Strong PFZ</div>
+          <div class="val" id="stat-strong" style="color: var(--strong-pfz);">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="lbl">Moderate</div>
+          <div class="val" id="stat-mod" style="color: var(--mod-pfz);">0</div>
+        </div>
+      </div>
+
+      <!-- Search Location / Coordinates -->
+      <div class="control-group">
+        <label><i class="fa-solid fa-location-crosshairs"></i> Jump to Coordinates (Lat, Lng)</label>
+        <div style="display: flex; gap: 6px;">
+          <input type="text" id="target-coords" placeholder="e.g. 19.5, 90.2">
+          <button class="btn-action" style="width: auto;" onclick="jumpToCoords()"><i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- Visibility Filters -->
+      <div class="control-group">
+        <label>Filter Display</label>
+        <div class="filter-box">
+          <label><input type="checkbox" id="chk-strong" checked onchange="applyFilters()"> <span style="color:var(--strong-pfz)">●</span> Strong</label>
+          <label><input type="checkbox" id="chk-mod" checked onchange="applyFilters()"> <span style="color:var(--mod-pfz)">●</span> Moderate</label>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Map View Mode</label>
+        <select id="map-style" onchange="changeMapStyle()">
+          <option value="satellite">Satellite Imagery</option>
+          <option value="street">Standard Navigation</option>
+        </select>
+      </div>
+
+      <!-- Tools & Actions -->
+      <div class="control-group" style="gap: 8px;">
+        <button class="btn-action" onclick="zoomToExtent()">
+          <i class="fa-solid fa-expand" style="color: var(--primary);"></i> Zoom to Forecast Extent
+        </button>
+        
+        <button class="btn-action" id="measure-btn" onclick="toggleMeasureTool()">
+          <i class="fa-solid fa-ruler" style="color: #8b5cf6;"></i> Measure Distance
+        </button>
+
+        <button class="btn-action" onclick="exportCSV()">
+          <i class="fa-solid fa-download" style="color: #10b981;"></i> Export Active CSV
+        </button>
+      </div>
+
+    </div>
+
+    <div class="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentDate = new Date();
+    let currentRawData = [];
+
+    const map = L.map('map', { center: [19.80, 90.35], zoom: 7 });
+
+    const layers = {
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
+      street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 })
+    };
+
+    layers.satellite.addTo(map);
+    let currentLayer = layers.satellite;
+
+    let strongLayerGroup = L.layerGroup().addTo(map);
+    let modLayerGroup = L.layerGroup().addTo(map);
+
+    // Live Coordinates Box
+    const CoordsControl = L.Control.extend({
+      options: { position: 'bottomright' },
+      onAdd: function () {
+        const c = L.DomUtil.create('div', 'coords-box');
+        c.id = 'coords-display';
+        c.innerHTML = 'Lat: -- | Lng: --';
+        return c;
+      }
+    });
+    map.addControl(new CoordsControl());
+
+    map.on('mousemove', e => {
+      document.getElementById('coords-display').innerHTML = `Lat: ${e.latlng.lat.toFixed(4)}° | Lng: ${e.latlng.lng.toFixed(4)}°`;
+    });
+
+    // Map Legend
+    const LegendControl = L.Control.extend({
+      options: { position: 'bottomleft' },
+      onAdd: function () {
+        const container = L.DomUtil.create('div', 'legend-box');
+        container.innerHTML = `
+          <div class="legend-item"><div class="legend-color" style="background:#ef4444"></div> Strong PFZ</div>
+          <div class="legend-item"><div class="legend-color" style="background:#eab308"></div> Moderate PFZ</div>
+          <div class="legend-item"><div class="legend-line" style="border-top:2px dashed #38bdf8"></div> Bangladesh EEZ</div>
+        `;
+        return container;
+      }
+    });
+    map.addControl(new LegendControl());
+
+    // Load Bangladesh EEZ GeoJSON Overlay directly
+    fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_boundary_lines_land.geojson')
+      .then(res => res.json())
+      .catch(() => null);
+
+    // Draw BD EEZ Approx Line Layer
+    const eezCoordinates = [
+      [21.65, 89.15], [20.70, 89.00], [19.50, 89.50], [17.50, 89.70], 
+      [17.50, 90.50], [18.00, 91.50], [20.20, 92.30], [20.65, 92.35]
+    ];
+    L.polyline(eezCoordinates, { color: '#38bdf8', weight: 2, dashArray: '6, 6' })
+      .addTo(map)
+      .bindPopup("<b>Bangladesh EEZ Limit</b>");
+
+    // Distance Measurement Logic
+    let isMeasuring = false;
+    let measurePoints = [];
+    let measureLine = null;
+    let measureMarkers = [];
+
+    function toggleMeasureTool() {
+      isMeasuring = !isMeasuring;
+      const btn = document.getElementById('measure-btn');
+      if (isMeasuring) {
+        btn.classList.add('active');
+        btn.innerHTML = `<i class="fa-solid fa-times"></i> Stop Measuring`;
+        map.getContainer().style.cursor = 'crosshair';
+      } else {
+        btn.classList.remove('active');
+        btn.innerHTML = `<i class="fa-solid fa-ruler" style="color: #8b5cf6;"></i> Measure Distance`;
+        map.getContainer().style.cursor = '';
+        clearMeasurement();
+      }
+    }
+
+    map.on('click', function(e) {
+      if (!isMeasuring) return;
+
+      measurePoints.push(e.latlng);
+      const marker = L.circleMarker(e.latlng, { radius: 4, color: '#8b5cf6', fillColor: '#fff', fillOpacity: 1 }).addTo(map);
+      measureMarkers.push(marker);
+
+      if (measurePoints.length > 1) {
+        if (measureLine) map.removeLayer(measureLine);
+        measureLine = L.polyline(measurePoints, { color: '#8b5cf6', weight: 3, dashArray: '4, 4' }).addTo(map);
+
+        let totalDistMeters = 0;
+        for (let i = 0; i < measurePoints.length - 1; i++) {
+          totalDistMeters += measurePoints[i].distanceTo(measurePoints[i+1]);
+        }
+        
+        const km = (totalDistMeters / 1000).toFixed(2);
+        const nm = (totalDistMeters / 1852).toFixed(2);
+
+        marker.bindPopup(`<b>Distance:</b><br>${nm} NM (${km} KM)`).openPopup();
+      }
+    });
+
+    function clearMeasurement() {
+      measurePoints = [];
+      if (measureLine) map.removeLayer(measureLine);
+      measureMarkers.forEach(m => map.removeLayer(m));
+      measureMarkers = [];
+    }
+
+    function formatDateToYYYYMMDD(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function updateDateLabel() {
+      const options = { day: '2-digit', month: 'short', year: 'numeric' };
+      const formattedText = currentDate.toLocaleDateString('en-GB', options);
+      const todayStr = formatDateToYYYYMMDD(new Date());
+      const selectedStr = formatDateToYYYYMMDD(currentDate);
+
+      const labelContainer = document.getElementById('date-label');
+      labelContainer.innerHTML = (selectedStr === todayStr) 
+        ? `${formattedText} <span style="color: var(--primary); font-size: 0.75rem;">(Today)</span>` 
+        : formattedText;
+    }
+
+    function navigateDate(days) {
+      currentDate.setDate(currentDate.getDate() + days);
+      updateDateLabel();
+      loadDataForSelectedDate();
+    }
+
+    function applyFilters() {
+      const showStrong = document.getElementById('chk-strong').checked;
+      const showMod = document.getElementById('chk-mod').checked;
+
+      if (showStrong) map.addLayer(strongLayerGroup); else map.removeLayer(strongLayerGroup);
+      if (showMod) map.addLayer(modLayerGroup); else map.removeLayer(modLayerGroup);
+    }
+
+    function zoomToExtent() {
+      const allLayers = [...strongLayerGroup.getLayers(), ...modLayerGroup.getLayers()];
+      if (allLayers.length > 0) {
+        map.fitBounds(L.featureGroup(allLayers).getBounds(), { padding: [30, 30] });
+      }
+    }
+
+    function jumpToCoords() {
+      const input = document.getElementById('target-coords').value.trim();
+      const parts = input.split(',').map(p => parseFloat(p));
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        map.setView([parts[0], parts[1]], 10);
+        L.popup().setLatLng([parts[0], parts[1]]).setContent(`Location: ${parts[0]}, ${parts[1]}`).openOn(map);
+      } else {
+        alert('Invalid coordinates. Please write in Lat, Lng format (e.g. 19.5, 90.2)');
+      }
+    }
+
+    function loadDataForSelectedDate() {
+      const selectedDateStr = formatDateToYYYYMMDD(currentDate);
+      const status = document.getElementById('status');
+      
+      status.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading data for ${selectedDateStr}...`;
+      strongLayerGroup.clearLayers();
+      modLayerGroup.clearLayers();
+
+      let strongCount = 0, modCount = 0;
+      const csvFileName = `pfz_all_cells_${selectedDateStr}.csv`;
+
+      Papa.parse(csvFileName, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          currentRawData = results.data;
+          results.data.forEach(p => {
+            const lat = parseFloat(p.latitude || p.Latitude || p.lat || p.Lat);
+            const lng = parseFloat(p.longitude || p.Longitude || p.lon || p.Lon || p.lng || p.Lng);
+            const cls = parseInt(p.pfz_class || p.PFZ_Class || p.class || p.Class || p.grid_code);
+            
+            if (!isNaN(lat) && !isNaN(lng) && (cls === 1 || cls === 2)) {
+              const isStrong = (cls === 2);
+              if (isStrong) strongCount++; else modCount++;
+
+              const color = isStrong ? '#ef4444' : '#eab308';
+              const marker = L.circleMarker([lat, lng], {
+                radius: isStrong ? 4 : 3,
+                fillColor: color,
+                color: color,
+                weight: 0.5,
+                fillOpacity: 0.8
+              }).bindPopup(`<b>PFZ Cell</b><br>Type: ${isStrong ? 'Strong' : 'Moderate'}<br>Date: ${selectedDateStr}<br>Lat: ${lat}, Lng: ${lng}`);
+
+              if (isStrong) strongLayerGroup.addLayer(marker);
+              else modLayerGroup.addLayer(marker);
+            }
+          });
+
+          document.getElementById('stat-total').innerText = (strongCount + modCount).toLocaleString();
+          document.getElementById('stat-strong').innerText = strongCount.toLocaleString();
+          document.getElementById('stat-mod').innerText = modCount.toLocaleString();
+
+          if ((strongCount + modCount) > 0) {
+            status.innerHTML = `✅ Displaying ${strongCount + modCount} cells for ${selectedDateStr}`;
+            zoomToExtent();
+          } else {
+            status.innerHTML = `⚠️ No PFZ class 1 or 2 found for ${selectedDateStr}`;
+          }
+        },
+        error: function() {
+          document.getElementById('stat-total').innerText = '0';
+          document.getElementById('stat-strong').innerText = '0';
+          document.getElementById('stat-mod').innerText = '0';
+          status.innerHTML = `❌ File not found: ${csvFileName}`;
+        }
+      });
+    }
+
+    function exportCSV() {
+      if (currentRawData.length === 0) return alert('No data available to export.');
+      const csvStr = Papa.unparse(currentRawData);
+      const blob = new Blob([csvStr], { type: 'text/csv;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `PFZ_Forecast_${formatDateToYYYYMMDD(currentDate)}.csv`;
+      a.click();
+    }
+
+    function changeMapStyle() {
+      map.removeLayer(currentLayer);
+      currentLayer = layers[document.getElementById('map-style').value];
+      currentLayer.addTo(map);
+    }
+
+    updateDateLabel();
+    loadDataForSelectedDate();
+  </script>
+</body>
+</html>
