@@ -3,17 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bay of Bengal PFZ Forecast System</title>
+  <title>Bay of Bengal PFZ Multi-Date Forecast</title>
   
-  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
-  <!-- FontAwesome & Google Fonts -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- PapaParse for CSV & shpjs for ZIP Shapefiles -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
 
@@ -45,7 +41,6 @@
     .brand-icon { width: 38px; height: 38px; background: rgba(56, 189, 248, 0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.2rem; }
     .brand-title h1 { font-size: 1.15rem; font-weight: 700; color: #fff; }
     .brand-title p { font-size: 0.75rem; color: var(--text-muted); }
-    .header-badge { background: #1e293b; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color); color: var(--primary); display: flex; align-items: center; gap: 6px; }
 
     .app-container { display: flex; flex: 1; overflow: hidden; }
     
@@ -61,5 +56,242 @@
       z-index: 500;
     }
 
+    .control-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+    select { width: 100%; padding: 0.65rem 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: #0f172a; color: #fff; font-size: 0.85rem; outline: none; }
+
+    /* Date Navigation Styles */
+    .date-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 4px;
+    }
+    .date-btn {
+      background: #1e293b;
+      color: var(--primary);
+      border: 1px solid var(--border-color);
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+    }
+    .date-btn:hover {
+      background: var(--primary);
+      color: #000;
+    }
+    .date-display {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+      text-align: center;
+    }
+
     .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .stat-card { background: rgba(11, 15, 25, 0.6); border: 1
+    .stat-card { background: rgba(11, 15, 25, 0.6); border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; text-align: center; }
+    .stat-card .val { font-size: 1.2rem; font-weight: 700; }
+    .stat-card .lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
+
+    .map-container { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; background: #0b0f19; }
+
+    .status-msg { font-size: 0.75rem; padding: 6px 10px; border-radius: 6px; background: rgba(56, 189, 248, 0.1); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.2); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-water"></i></div>
+      <div class="brand-title">
+        <h1>Bay of Bengal PFZ Forecast</h1>
+        <p>Multi-Date Oceanographic Monitoring System</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-container">
+    <div class="sidebar">
+      
+      <!-- Date Navigation Control -->
+      <div class="control-group">
+        <label><i class="fa-regular fa-calendar-days"></i> Forecast Date</label>
+        <div class="date-nav">
+          <button class="date-btn" onclick="navigateDate(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+          <div class="date-display" id="date-label">-- --- ----</div>
+          <button class="date-btn" onclick="navigateDate(1)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+
+      <div class="status-msg" id="status">
+        <i class="fa-solid fa-circle-info"></i> Ready
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="lbl">Total Cells</div>
+          <div class="val" id="stat-total" style="color: var(--primary);">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="lbl">Strong PFZ</div>
+          <div class="val" id="stat-strong" style="color: var(--strong-pfz);">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="lbl">Moderate</div>
+          <div class="val" id="stat-mod" style="color: var(--mod-pfz);">0</div>
+        </div>
+      </div>
+
+      <!-- Map View Mode Selector (2 Options Only) -->
+      <div class="control-group">
+        <label>Map View Mode</label>
+        <select id="map-style" onchange="changeMapStyle()">
+          <option value="satellite">Satellite Imagery</option>
+          <option value="street">Standard Navigation</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentDate = new Date(); // Defaults to today's date
+
+    const map = L.map('map', { center: [19.80, 90.35], zoom: 7 });
+
+    const layers = {
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
+      street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 })
+    };
+
+    // Default layer set to Satellite Imagery
+    layers.satellite.addTo(map);
+    let currentLayer = layers.satellite;
+
+    let activeLayerGroup = L.layerGroup().addTo(map);
+
+    function formatDateToYYYYMMDD(dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function updateDateLabel() {
+      const options = { day: '2-digit', month: 'short', year: 'numeric' };
+      const formattedText = currentDate.toLocaleDateString('en-GB', options);
+      
+      const todayStr = formatDateToYYYYMMDD(new Date());
+      const selectedStr = formatDateToYYYYMMDD(currentDate);
+
+      const labelContainer = document.getElementById('date-label');
+      if (selectedStr === todayStr) {
+        labelContainer.innerHTML = `${formattedText} <span style="color: var(--primary); font-size: 0.75rem;">(Today)</span>`;
+      } else {
+        labelContainer.innerText = formattedText;
+      }
+    }
+
+    function navigateDate(days) {
+      currentDate.setDate(currentDate.getDate() + days);
+      updateDateLabel();
+      loadDataForSelectedDate();
+    }
+
+    function loadDataForSelectedDate() {
+      const selectedDateStr = formatDateToYYYYMMDD(currentDate);
+      const status = document.getElementById('status');
+      
+      status.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading data for ${selectedDateStr}...`;
+      activeLayerGroup.clearLayers();
+
+      let strongCount = 0, modCount = 0;
+
+      // 1. Load CSV Grid for selected date
+      const csvFileName = `pfz_all_cells_${selectedDateStr}.csv`;
+
+      Papa.parse(csvFileName, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          results.data.forEach(p => {
+            const lat = parseFloat(p.latitude || p.Latitude);
+            const lng = parseFloat(p.longitude || p.Longitude);
+            const cls = parseInt(p.pfz_class || p.PFZ_Class);
+            
+            if (!isNaN(lat) && !isNaN(lng) && (cls === 1 || cls === 2)) {
+              const isStrong = cls === 2;
+              if (isStrong) strongCount++; else modCount++;
+
+              const marker = L.circleMarker([lat, lng], {
+                radius: isStrong ? 4 : 3,
+                fillColor: isStrong ? '#facc15' : '#22c55e',
+                color: isStrong ? '#facc15' : '#22c55e',
+                weight: 0.5,
+                fillOpacity: 0.7
+              });
+              
+              marker.bindPopup(`<b>PFZ Cell</b><br>Date: ${selectedDateStr}<br>Lat: ${lat}, Lng: ${lng}`);
+              activeLayerGroup.addLayer(marker);
+            }
+          });
+
+          document.getElementById('stat-total').innerText = (strongCount + modCount).toLocaleString();
+          document.getElementById('stat-strong').innerText = strongCount.toLocaleString();
+          document.getElementById('stat-mod').innerText = modCount.toLocaleString();
+          status.innerHTML = `✅ Displaying data for ${selectedDateStr}`;
+        },
+        error: function() {
+          document.getElementById('stat-total').innerText = '0';
+          document.getElementById('stat-strong').innerText = '0';
+          document.getElementById('stat-mod').innerText = '0';
+          status.innerHTML = `⚠️ CSV not found for ${selectedDateStr}`;
+        }
+      });
+
+      // 2. Load Zip Polygons if available
+      loadPolygonZip(`Strong_${selectedDateStr}.zip`, '#facc15', 'Strong PFZ', selectedDateStr);
+      loadPolygonZip(`Moderate_${selectedDateStr}.zip`, '#22c55e', 'Moderate PFZ', selectedDateStr);
+    }
+
+    function loadPolygonZip(url, color, label, dateStr) {
+      shp(url).then(function(geojson) {
+        const polyLayer = L.geoJSON(geojson, {
+          style: { color: color, fillColor: color, fillOpacity: 0.4, weight: 2 },
+          onEachFeature: function (f, l) {
+            l.bindPopup(`<b>${label} Polygon</b><br>Date: ${dateStr}`);
+          }
+        });
+        activeLayerGroup.addLayer(polyLayer);
+      }).catch(err => {
+        // Fallback to default Strong.zip / Moderate.zip if date-specific zip is missing
+        if(url.includes('Strong')) {
+          shp('Strong.zip').then(g => activeLayerGroup.addLayer(L.geoJSON(g, {style:{color:color,fillColor:color,fillOpacity:0.4}}))).catch(e=>{});
+        } else {
+          shp('Moderate.zip').then(g => activeLayerGroup.addLayer(L.geoJSON(g, {style:{color:color,fillColor:color,fillOpacity:0.4}}))).catch(e=>{});
+        }
+      });
+    }
+
+    function changeMapStyle() {
+      const style = document.getElementById('map-style').value;
+      map.removeLayer(currentLayer);
+      currentLayer = layers[style];
+      currentLayer.addTo(map);
+    }
+
+    // Initial Load for Today
+    updateDateLabel();
+    loadDataForSelectedDate();
+  </script>
+</body>
+</html>
