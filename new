@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bay of Bengal Oceanographic & PFZ Forecast System</title>
+  
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- FontAwesome & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --card-bg: #151c2c;
+      --border-color: #232e42;
+      --primary: #38bdf8;
+      --strong-pfz: #facc15;
+      --mod-pfz: #22c55e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Header */
+    header {
+      background: var(--card-bg);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon { width: 38px; height: 38px; background: rgba(56, 189, 248, 0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.2rem; }
+    .brand-title h1 { font-size: 1.15rem; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
+    .brand-title p { font-size: 0.75rem; color: var(--text-muted); }
+    .header-badge { background: #1e293b; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color); color: var(--primary); display: flex; align-items: center; gap: 6px; }
+
+    /* Layout */
+    .app-container { display: flex; flex: 1; overflow: hidden; }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 380px;
+      background: var(--card-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1.2rem;
+      overflow-y: auto;
+      z-index: 500;
+    }
+
+    /* Stat Grid */
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-card {
+      background: rgba(11, 15, 25, 0.6);
+      border: 1px solid var(--border-color);
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stat-card .val { font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
+    .stat-card .lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Control Panel */
+    .control-group { display: flex; flex-direction: column; gap: 8px; }
+    label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between; }
+    select, input {
+      width: 100%;
+      padding: 0.65rem 0.8rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: #0f172a;
+      color: #fff;
+      font-size: 0
